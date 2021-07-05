@@ -1,14 +1,22 @@
-import os
+import numpy as np
 from data import data_processing as preproc
 
-train_path = 'data/dry-run-data/train'
+SEED = 7
+
+np.random.seed(seed=SEED)
+
 
 if __name__ == "__main__":
 
-    input_data = []
+    data = preproc.argument_classification_data()
+    print(data['label'].value_counts())
 
-    for _, _, files in os.walk(train_path):
-        for file in files:
-            input_data.append(preproc.argument_classification_data('data/dry-run-data/train/'+file))
+    folds = preproc.kfold_data(data, 10)
 
-    print(input_data)
+    for fold in folds:
+        print(fold['train'])
+        print(fold['test'])
+
+
+
+
