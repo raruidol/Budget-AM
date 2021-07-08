@@ -59,14 +59,26 @@ def kfold_data(data, k):
     fold_chunks = []
     folded_data = []
 
-    # check if 3 or 7 classes are considered for the evaluation of the trained models !!!
     data_c1 = data.loc[data['label'] == 0]
+    data_c1['label'] = pd.Series([[1, 0, 0, 0, 0, 0, 0]]*len(data_c1.index), index=data_c1.index)
+
     data_c2 = data.loc[data['label'] == 1]
+    data_c2['label'] = pd.Series([[0, 1, 0, 0, 0, 0, 0]] * len(data_c2.index), index=data_c2.index)
+
     data_c3 = data.loc[data['label'] == 2]
+    data_c3['label'] = pd.Series([[0, 0, 1, 0, 0, 0, 0]] * len(data_c3.index), index=data_c3.index)
+
     data_c4 = data.loc[data['label'] == 3]
+    data_c4['label'] = pd.Series([[0, 0, 0, 1, 0, 0, 0]] * len(data_c4.index), index=data_c4.index)
+
     data_c5 = data.loc[data['label'] == 4]
+    data_c5['label'] = pd.Series([[0, 0, 0, 0, 1, 0, 0]] * len(data_c5.index), index=data_c5.index)
+
     data_c6 = data.loc[data['label'] == 5]
+    data_c6['label'] = pd.Series([[0, 0, 0, 0, 0, 1, 0]] * len(data_c6.index), index=data_c6.index)
+
     data_c7 = data.loc[data['label'] == 6]
+    data_c7['label'] = pd.Series([[0, 0, 0, 0, 0, 0, 1]] * len(data_c7.index), index=data_c7.index)
 
     kfold_c1 = np.array_split(data_c1, k)
     kfold_c2 = np.array_split(data_c2, k)
@@ -84,7 +96,7 @@ def kfold_data(data, k):
     # prepare train-test splits for each fold
     for j in range(k):
         test = fold_chunks[j].sample(frac=1)
-        train = pd.concat([x for i,x in enumerate(fold_chunks) if i!=j]).sample(frac=1)
+        train = pd.concat([x for i,x in enumerate(fold_chunks) if i != j]).sample(frac=1)
         folded_data.append({'train':train, 'test':test})
 
     return folded_data
