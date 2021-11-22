@@ -23,16 +23,21 @@ import random
 from pathlib import Path
 from typing import Optional
 from simpletransformers.classification import ClassificationModel
+from nlp import nlp
+from sentence_transformers import SentenceTransformer
 
-# BASIC, CASCADE1, CASCADE2, ENSEMBLE
+
+# BASIC, CASCADE
 MODEL = 'BASIC'
 
-BASIC_CLF = ClassificationModel('bert', 'nlp/models/7class_model', num_labels=7)
-ANA_CLF = ClassificationModel('bert', 'nlp/models/arg-nonarg_model', num_labels=2)
+BASIC_CLF = ClassificationModel('bert', 'nlp/models/basic_model', num_labels=5)
 PRECLM_CLF = ClassificationModel('bert', 'nlp/models/pre-clm_model', num_labels=2)
+PRECLM_B_CLF = PRECLM_CLF = ClassificationModel('bert', 'nlp/models/balanced-pc_model', num_labels=2)
 PREM_CLF = ClassificationModel('bert', 'nlp/models/premise_model', num_labels=3)
 CLAIM_CLF = ClassificationModel('bert', 'nlp/models/claim_model', num_labels=2)
-NOARG_CLF = ClassificationModel('bert', 'nlp/models/noarg_model', num_labels=2)
+
+RELID_CLF = ClassificationModel('bert', 'nlp/models/relID_model', num_labels=2)
+CLF_BUDGET = SentenceTransformer("nlp/models/paraphrase-multilingual-mpnet-base-v2")
 
 # --------------- データ定義ここから ---------------
 ARGUMENT_CLASSES = [
@@ -318,43 +323,59 @@ def estimate_local(minutesObj: MinutesObject, budgetObj: BudgetObject):
                      if mex.moneyExpression in segment and not segment[segment.rfind(mex.moneyExpression) - 1].isdigit():
                          text += segment
 
-                pred_list = []
-                if MODEL == 'BASIC' or MODEL == 'ENSEMBLE':
-                    predictions, raw_outputs = BASIC_CLF.predict([text])
-                    pred_list.append(predictions[0])
-                elif MODEL == 'CASCADE1' or MODEL == 'ENSEMBLE':
-                    pred, r_o = PRECLM_CLF.predict([text])
-                    if pred[0] == 'Premise':
-                        predictions, raw_outputs = PREM_CLF.predict([text])
-                        pred_list.append(predictions[0])
-                    else:
-                        predictions, raw_outputs = CLAIM_CLF.predict([text])
-                        pred_list.append(predictions[0])
-                elif MODEL == 'CASCADE2' or MODEL == 'ENSEMBLE':
-                    pred1, r_o = ANA_CLF.predict([text])
-                    if pred1[0] == 'Arg':
-                        pred2, r_o = PRECLM_CLF.predict([text])
-                        if pred2[0] == 'Premise':
+                if '円' not in mex.moneyExpression:
+                    mex.argumentClass = '金額表現ではない'
+                else:
+                    if MODEL == 'BASIC':
+                        print('ARGUMENT INFERENCE:')
+                        predictions, raw_outputs = BASIC_CLF.predict([text])
+                    elif MODEL == 'CASCADE':
+                        # Predict Claim or Premise
+                        pred, r_o = PRECLM_CLF.predict([text])
+                        if pred[0] == 'Premise':
+                            # Predict Premise class
                             predictions, raw_outputs = PREM_CLF.predict([text])
-                            pred_list.append(predictions[0])
                         else:
+                            # Predict Claim class
                             predictions, raw_outputs = CLAIM_CLF.predict([text])
-                            pred_list.append(predictions[0])
-                    else:
-                        predictions, raw_outputs = NOARG_CLF.predict([text])
-                        pred_list.append(predictions[0])
 
-                if MODEL == 'ENSEMBLE':
-                    predictions = [max(set(pred_list), key=pred_list.count)]
+                    mex.argumentClass = predictions[0]
 
-                mex.argumentClass = predictions[0]
-
+                '''
                 # ランダムにrelatedIDを設定する
                 # relatedIDは付与されないことが多いので，それを考慮したランダム
                 random_idx = random.randint(0, len(budgets_filtered) * 3)
                 if random_idx < len(budgets_filtered):
                     mex.relatedID = [budgets_filtered[random_idx].budgetId]
+                '''
 
+                candidate_budgets = []
+                for budget in budgets_filtered:
+
+                    if budget.description is not None:
+                        budget_text = budget.budgetItem + ' ' + budget.description
+                    else:
+                        budget_text = budget.budgetItem
+
+                    id_predictions, raw_outputs = RELID_CLF.predict([[text, budget_text]])
+
+                    if id_predictions[0] == 1:
+                        candidate_budgets.append(budget)
+                        # cscore = nlp.similar_score(text, budget_text, CLF_BUDGET)
+                        # candidate_budgets.append([budget, cscore])
+
+                if len(candidate_budgets) > 0:
+                    mex.relatedID = candidate_budgets[0].budgetId
+                    '''
+                    max_sim = 0
+                    best_budget = None
+                    for budget in candidate_budgets:
+                        if budget[1] > max_sim:
+                            max_sim = budget[1]
+                            best_budget = budget[0]
+                    if best_budget is not None:
+                        mex.relatedID = best_budget.budgetId
+                    '''
 
 
 def estimate_diet(minutesObj: MinutesObject, budgetObj: BudgetObject):
@@ -382,42 +403,58 @@ def estimate_diet(minutesObj: MinutesObject, budgetObj: BudgetObject):
                     if mex.moneyExpression in segment and not segment[segment.rfind(mex.moneyExpression) - 1].isdigit():
                         text += segment
 
-                pred_list = []
-                if MODEL == 'BASIC' or MODEL == 'ENSEMBLE':
-                    predictions, raw_outputs = BASIC_CLF.predict([text])
-                    pred_list.append(predictions[0])
-                elif MODEL == 'CASCADE1' or MODEL == 'ENSEMBLE':
-                    pred, r_o = PRECLM_CLF.predict([text])
-                    if pred[0] == 'Premise':
-                        predictions, raw_outputs = PREM_CLF.predict([text])
-                        pred_list.append(predictions[0])
-                    else:
-                        predictions, raw_outputs = CLAIM_CLF.predict([text])
-                        pred_list.append(predictions[0])
-                elif MODEL == 'CASCADE2' or MODEL == 'ENSEMBLE':
-                    pred1, r_o = ANA_CLF.predict([text])
-                    if pred1[0] == 'Arg':
-                        pred2, r_o = PRECLM_CLF.predict([text])
-                        if pred2[0] == 'Premise':
+                if '円' not in mex.moneyExpression:
+                    mex.argumentClass = '金額表現ではない'
+                else:
+                    if MODEL == 'BASIC':
+                        predictions, raw_outputs = BASIC_CLF.predict([text])
+                    elif MODEL == 'CASCADE':
+                        # Predict Claim or Premise
+                        pred, r_o = PRECLM_CLF.predict([text])
+                        if pred[0] == 'Premise':
+                            # Predict Premise class
                             predictions, raw_outputs = PREM_CLF.predict([text])
-                            pred_list.append(predictions[0])
                         else:
+                            # Predict Claim class
                             predictions, raw_outputs = CLAIM_CLF.predict([text])
-                            pred_list.append(predictions[0])
-                    else:
-                        predictions, raw_outputs = NOARG_CLF.predict([text])
-                        pred_list.append(predictions[0])
 
-                if MODEL == 'ENSEMBLE':
-                    predictions = [max(set(pred_list), key=pred_list.count)]
+                    mex.argumentClass = predictions[0]
 
-                mex.argumentClass = predictions[0]
-
+                '''
                 # ランダムにrelatedIDを設定する
                 # relatedIDは付与されないことが多いので，それを考慮したランダム
                 random_idx = random.randint(0, len(budgets) * 3)
                 if random_idx < len(budgets):
                     mex.relatedID = [budgets[random_idx].budgetId]
+                '''
+
+                candidate_budgets = []
+                for budget in budgets:
+
+                    if budget.description is not None:
+                        budget_text = budget.budgetItem + ' ' + budget.description
+                    else:
+                        budget_text = budget.budgetItem
+
+                    id_predictions, raw_outputs = RELID_CLF.predict([[text, budget_text]])
+
+                    if id_predictions[0] == 1:
+                        candidate_budgets.append(budget)
+                        # cscore = nlp.similar_score(text, budget_text, CLF_BUDGET)
+                        # candidate_budgets.append([budget, cscore])
+
+                if len(candidate_budgets) > 0:
+                    mex.relatedID = candidate_budgets[0].budgetId
+                    '''
+                    max_sim = 0
+                    best_budget = None
+                    for budget in candidate_budgets:
+                        if budget[1] > max_sim:
+                            max_sim = budget[1]
+                            best_budget = budget[0]
+                    if best_budget is not None:
+                        mex.relatedID = best_budget.budgetId
+                    '''
 
 
 # --------------- main ---------------
