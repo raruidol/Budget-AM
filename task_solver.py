@@ -28,11 +28,11 @@ from sentence_transformers import SentenceTransformer
 
 
 # BASIC, CASCADE
-MODEL = 'BASIC'
+MODEL = 'CASCADE'
 
 BASIC_CLF = ClassificationModel('bert', 'nlp/models/basic_model', num_labels=5)
 PRECLM_CLF = ClassificationModel('bert', 'nlp/models/pre-clm_model', num_labels=2)
-PRECLM_B_CLF = PRECLM_CLF = ClassificationModel('bert', 'nlp/models/balanced-pc_model', num_labels=2)
+PRECLM_B_CLF = ClassificationModel('bert', 'nlp/models/balanced-pc_model', num_labels=2)
 PREM_CLF = ClassificationModel('bert', 'nlp/models/premise_model', num_labels=3)
 CLAIM_CLF = ClassificationModel('bert', 'nlp/models/claim_model', num_labels=2)
 
@@ -327,7 +327,6 @@ def estimate_local(minutesObj: MinutesObject, budgetObj: BudgetObject):
                     mex.argumentClass = '金額表現ではない'
                 else:
                     if MODEL == 'BASIC':
-                        print('ARGUMENT INFERENCE:')
                         predictions, raw_outputs = BASIC_CLF.predict([text])
                     elif MODEL == 'CASCADE':
                         # Predict Claim or Premise
@@ -340,6 +339,7 @@ def estimate_local(minutesObj: MinutesObject, budgetObj: BudgetObject):
                             predictions, raw_outputs = CLAIM_CLF.predict([text])
 
                     mex.argumentClass = predictions[0]
+                    # mex.argumentClass = "Premise : 未来（現在以降）・見積"
 
                 '''
                 # ランダムにrelatedIDを設定する
@@ -360,12 +360,16 @@ def estimate_local(minutesObj: MinutesObject, budgetObj: BudgetObject):
                     id_predictions, raw_outputs = RELID_CLF.predict([[text, budget_text]])
 
                     if id_predictions[0] == 1:
-                        candidate_budgets.append(budget)
+                        # mex.relatedID = budget.budgetId
+                        # break
                         # cscore = nlp.similar_score(text, budget_text, CLF_BUDGET)
                         # candidate_budgets.append([budget, cscore])
+                        candidate_budgets.append(budget)
 
                 if len(candidate_budgets) > 0:
-                    mex.relatedID = candidate_budgets[0].budgetId
+                    bscorelist = nlp.budget_score_local(text, candidate_budgets)
+                    if bscorelist is not None:
+                        mex.relatedID = bscorelist
                     '''
                     max_sim = 0
                     best_budget = None
@@ -419,6 +423,7 @@ def estimate_diet(minutesObj: MinutesObject, budgetObj: BudgetObject):
                             predictions, raw_outputs = CLAIM_CLF.predict([text])
 
                     mex.argumentClass = predictions[0]
+                    # mex.argumentClass = "Premise : 未来（現在以降）・見積"
 
                 '''
                 # ランダムにrelatedIDを設定する
@@ -439,12 +444,16 @@ def estimate_diet(minutesObj: MinutesObject, budgetObj: BudgetObject):
                     id_predictions, raw_outputs = RELID_CLF.predict([[text, budget_text]])
 
                     if id_predictions[0] == 1:
-                        candidate_budgets.append(budget)
+                        # mex.relatedID = budget.budgetId
+                        # break
                         # cscore = nlp.similar_score(text, budget_text, CLF_BUDGET)
                         # candidate_budgets.append([budget, cscore])
+                        candidate_budgets.append(budget)
 
                 if len(candidate_budgets) > 0:
-                    mex.relatedID = candidate_budgets[0].budgetId
+                    bscorelist = nlp.budget_score_diet(text, candidate_budgets)
+                    if bscorelist is not None:
+                        mex.relatedID = bscorelist
                     '''
                     max_sim = 0
                     best_budget = None

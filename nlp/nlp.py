@@ -4,10 +4,11 @@ import re
 from operator import itemgetter
 from sentence_transformers import util
 
+
 def budget_score_local(proc, budget_list):
     scores = {}
     tagger = fugashi.Tagger()
-    proc_speech = [str(word) for word in tagger(proc.utterance)]
+    proc_speech = [str(word) for word in tagger(proc)]
     # print(proc_speech)
 
     for budget in budget_list:
@@ -63,14 +64,14 @@ def budget_score_local(proc, budget_list):
         else:
             scores[budget.budgetId] = (n_id + n_title) / 2
 
-    print(scores)
+    # print(scores)
 
     if scores[max(scores, key=scores.get)] == 0:
         return None
     else:
-        top2 = sorted(scores.items(), key=itemgetter(1), reverse=True)[:2]
+        top5 = sorted(scores.items(), key=itemgetter(1), reverse=True)[:5]
         res = []
-        for idt in top2:
+        for idt in top5:
             res.append(idt[0])
 
         return res
@@ -79,7 +80,7 @@ def budget_score_local(proc, budget_list):
 def budget_score_diet(sprec, budget_list):
     scores = {}
     tagger = fugashi.Tagger()
-    proc_speech = [str(word) for word in tagger(sprec.speech)]
+    proc_speech = [str(word) for word in tagger(sprec)]
 
     for budget in budget_list:
         budget_id = [word for word in tagger(budget.budgetItem)]
@@ -91,11 +92,11 @@ def budget_score_diet(sprec, budget_list):
         # budget_concept = budget_id + budget_description + budget_title
 
         score_id = 0
-        norm_id = 0
+        norm_id = 1
         score_desc = 0
-        norm_desc = 0
+        norm_desc = 1
         score_title = 0
-        norm_title = 0
+        norm_title = 1
 
         for concept in budget_id:
             # check if it is a noun
