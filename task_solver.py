@@ -362,15 +362,11 @@ def estimate_local(minutesObj: MinutesObject, budgetObj: BudgetObject):
                     if id_predictions[0] == 1:
                         # mex.relatedID = budget.budgetId
                         # break
-                        # cscore = nlp.similar_score(text, budget_text, CLF_BUDGET)
-                        # candidate_budgets.append([budget, cscore])
-                        candidate_budgets.append(budget)
+                        # score = nlp.similar_score(text, budget_text, CLF_BUDGET)
+                        score = nlp.budget_score(text, budget)
+                        candidate_budgets.append([budget, score])
 
                 if len(candidate_budgets) > 0:
-                    bscorelist = nlp.budget_score_local(text, candidate_budgets)
-                    if bscorelist is not None:
-                        mex.relatedID = bscorelist
-                    '''
                     max_sim = 0
                     best_budget = None
                     for budget in candidate_budgets:
@@ -379,7 +375,6 @@ def estimate_local(minutesObj: MinutesObject, budgetObj: BudgetObject):
                             best_budget = budget[0]
                     if best_budget is not None:
                         mex.relatedID = best_budget.budgetId
-                    '''
 
 
 def estimate_diet(minutesObj: MinutesObject, budgetObj: BudgetObject):
@@ -446,15 +441,11 @@ def estimate_diet(minutesObj: MinutesObject, budgetObj: BudgetObject):
                     if id_predictions[0] == 1:
                         # mex.relatedID = budget.budgetId
                         # break
-                        # cscore = nlp.similar_score(text, budget_text, CLF_BUDGET)
-                        # candidate_budgets.append([budget, cscore])
-                        candidate_budgets.append(budget)
+                        # score = nlp.similar_score(text, budget_text, CLF_BUDGET)
+                        score = nlp.budget_score(text, budget)
+                        candidate_budgets.append([budget, score])
 
                 if len(candidate_budgets) > 0:
-                    bscorelist = nlp.budget_score_diet(text, candidate_budgets)
-                    if bscorelist is not None:
-                        mex.relatedID = bscorelist
-                    '''
                     max_sim = 0
                     best_budget = None
                     for budget in candidate_budgets:
@@ -463,7 +454,6 @@ def estimate_diet(minutesObj: MinutesObject, budgetObj: BudgetObject):
                             best_budget = budget[0]
                     if best_budget is not None:
                         mex.relatedID = best_budget.budgetId
-                    '''
 
 
 # --------------- main ---------------
