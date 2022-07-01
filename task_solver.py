@@ -362,8 +362,8 @@ def estimate_local(minutesObj: MinutesObject, budgetObj: BudgetObject):
                     if id_predictions[0] == 1:
                         # mex.relatedID = budget.budgetId
                         # break
-                        # score = nlp.similar_score(text, budget_text, CLF_BUDGET)
-                        score = nlp.budget_score(text, budget)
+                        score = nlp.similar_score(text, budget_text, CLF_BUDGET)
+                        # score = nlp.budget_score(text, budget)
                         candidate_budgets.append([budget, score])
 
                 if len(candidate_budgets) > 0:
@@ -441,8 +441,8 @@ def estimate_diet(minutesObj: MinutesObject, budgetObj: BudgetObject):
                     if id_predictions[0] == 1:
                         # mex.relatedID = budget.budgetId
                         # break
-                        # score = nlp.similar_score(text, budget_text, CLF_BUDGET)
-                        score = nlp.budget_score(text, budget)
+                        score = nlp.similar_score(text, budget_text, CLF_BUDGET)
+                        # score = nlp.budget_score(text, budget)
                         candidate_budgets.append([budget, score])
 
                 if len(candidate_budgets) > 0:
